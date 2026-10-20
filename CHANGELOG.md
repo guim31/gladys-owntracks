@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-20
+
 ### Added
 
 - One Gladys device per phone of the OwnTracks Recorder: at home, presence
@@ -29,4 +31,5 @@ the notes of the version's GitHub Release.
   links); never in the logs.
 - Texts and documentation in English, French, German and Spanish.
 
-[Unreleased]: https://github.com/guim31/gladys-owntracks/commits/main
+[Unreleased]: https://github.com/guim31/gladys-owntracks/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/guim31/gladys-owntracks/releases/tag/v1.0.0
