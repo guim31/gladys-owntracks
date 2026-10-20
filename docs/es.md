@@ -131,9 +131,7 @@ comparten las coordenadas.
   posición nueva vuelve a empezar. Información transmitida: el nombre del
   teléfono, la hora de la última posición.
 
-Solo los teléfonos añadidos a Gladys activan escenas. Un paso que ocurrió
-mientras Gladys o el Recorder no estaban accesibles se activa con retraso,
-cuando vuelve el enlace.
+Solo los teléfonos añadidos a Gladys activan escenas. Un paso que ocurrió mientras el Recorder no estaba accesible se activa con retraso, cuando vuelve el enlace. Lo que ocurre durante un reinicio de Gladys no se repite: la integración vuelve a empezar desde el estado actual.
 
 **Acción** **Leer la posición de un teléfono**: una frase lista («Alice (phone)
 está en casa, posición de 16:08.») y los valores, para un mensaje o una

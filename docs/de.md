@@ -131,9 +131,7 @@ Akku, Entfernung von zu Hause, Genauigkeit der Position und einen Kartenlink
   Weitergegebene Informationen: der Name des Telefons, die Zeit der letzten
   Position.
 
-Nur die zu Gladys hinzugefügten Telefone lösen Szenen aus. Ein Wechsel, der
-stattfand, während Gladys oder der Recorder nicht erreichbar war, löst
-verspätet aus, wenn die Verbindung zurück ist.
+Nur die zu Gladys hinzugefügten Telefone lösen Szenen aus. Ein Wechsel, der stattfand, während der Recorder nicht erreichbar war, löst verspätet aus, wenn die Verbindung zurück ist. Was während eines Neustarts von Gladys passiert, wird nicht nachgeholt: Die Integration startet mit dem aktuellen Stand neu.
 
 **Aktion** **Position eines Telefons abfragen**: ein fertiger Satz („Alice
 (phone) ist zu Hause, Position von 16:08.“) und die Werte, für eine Nachricht

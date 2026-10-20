@@ -136,9 +136,7 @@ la carte quand les coordonnées sont partagées.
   nouvelle position remet à zéro. Informations transmises : le nom du
   téléphone, l'heure de la dernière position.
 
-Seuls les téléphones ajoutés à Gladys déclenchent des scènes. Un passage qui a
-eu lieu pendant que Gladys ou le Recorder était injoignable déclenche en
-retard, au retour du lien.
+Seuls les téléphones ajoutés à Gladys déclenchent des scènes. Un passage qui a eu lieu pendant que le Recorder était injoignable déclenche en retard, au retour du lien. Ce qui se passe pendant un redémarrage de Gladys n'est pas rejoué : l'intégration repart de l'état du moment.
 
 **Action** **Lire la position d'un téléphone** : une phrase toute faite
 (« Alice (phone) est à la maison, position de 16:08. ») et les valeurs, pour un

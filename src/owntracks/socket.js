@@ -80,11 +80,12 @@ export class LiveLink extends EventEmitter {
       return;
     }
     this.socket = socket;
+    // Also bounds the handshake: a proxy that never answers the upgrade.
+    this.#armIdle();
     socket.addEventListener('open', () => {
       if (this.socket !== socket) {
         return;
       }
-      this.failures = 0;
       this.live = true;
       this.#armIdle();
       clearInterval(this.pingTimer);
@@ -103,6 +104,9 @@ export class LiveLink extends EventEmitter {
         return;
       }
       this.#armIdle();
+      // Only a socket that carries something resets the backoff: a proxy that
+      // accepts the upgrade and drops it at once keeps a growing delay.
+      this.failures = 0;
       let frame;
       try {
         frame = JSON.parse(String(event.data));
@@ -126,10 +130,7 @@ export class LiveLink extends EventEmitter {
 
   #armIdle() {
     clearTimeout(this.idleTimer);
-    this.idleTimer = setTimeout(
-      () => this.#lost(new Error('no answer to the pings')),
-      this.timings.idleTimeout,
-    );
+    this.idleTimer = setTimeout(() => this.#lost(new Error('no answer')), this.timings.idleTimeout);
     this.idleTimer.unref?.();
   }
 

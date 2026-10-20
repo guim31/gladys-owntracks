@@ -120,8 +120,7 @@ the accuracy of the position, and a map link when coordinates are shared.
   Fired once per silence; a new position starts over. Information passed on:
   the phone name, the time of the last position.
 
-Only the phones added to Gladys fire triggers. A crossing that happened while
-Gladys or the Recorder was unreachable fires late, when the link comes back.
+Only the phones added to Gladys fire triggers. A crossing that happened while the Recorder was unreachable fires late, when the link comes back. What happens while Gladys itself restarts is not replayed: the integration starts again from the current state.
 
 **Action** **Get the position of a phone**: a ready-made sentence ("Alice
 (phone) is at home, position of 16:08.") and the values, for a message or a

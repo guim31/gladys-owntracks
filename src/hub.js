@@ -64,6 +64,9 @@ export const DEFAULT_TIMINGS = {
   widgetGap: 10_500,
 };
 
+// A location from the future is refused beyond this (clock skew).
+const MAX_FUTURE_MS = 24 * 3_600_000;
+
 const sameList = (a, b) => a.length === b.length && a.every((item, i) => item === b[i]);
 
 export class Hub {
@@ -128,10 +131,15 @@ export class Hub {
       createSocket: this.createSocket,
       timings: this.socketTimings,
     });
-    this.link.on('open', () => this.#onLiveOpen());
+    this.link.on('open', () =>
+      this.#onLiveOpen().catch((err) => logger.error('OwnTracks update failed', err)),
+    );
     this.link.on('message', (message) => this.#serialized(() => this.#onMessage(message)));
     this.link.on('close', () => logger.debug('Live link closed, REST fallback until it is back'));
-    this.link.start();
+    if (this.problem !== 'unauthorized') {
+      // Refused credentials: the link waits for the REST retry to succeed.
+      this.link.start();
+    }
     this.#every(this.timings.fallbackInterval, () => {
       if (this.link?.live) {
         return undefined;
@@ -197,6 +205,8 @@ export class Hub {
     this.lastContinuous.clear();
     this.version = null;
     this.problem = null;
+    this.houseRead = false;
+    this.houseWarned = false;
     this.lastDevicesSignature = '';
     this.gladys.forgetPublishedStates?.();
     await this.start(config);
@@ -232,11 +242,15 @@ export class Hub {
   // --- Gladys house ----------------------------------------------------------
 
   async #loadHouse() {
-    let houses = [];
+    let houses;
     try {
       houses = await this.gladys.getHouses();
     } catch (err) {
-      logger.warn(`Cannot read the Gladys houses (${err.message}): no distance from home`);
+      if (!this.houseWarned) {
+        this.houseWarned = true;
+        logger.warn(`Cannot read the Gladys houses (${err.message}): retried later`);
+      }
+      return;
     }
     const located = (houses ?? []).filter(
       (house) => typeof house.latitude === 'number' && typeof house.longitude === 'number',
@@ -247,6 +261,7 @@ export class Hub {
     if (wanted && house && String(house.name).toLowerCase() !== wanted) {
       logger.warn(`No located Gladys house named "${this.config.house}", using "${house.name}"`);
     }
+    this.houseRead = true;
     this.house = house
       ? { name: house.name, latitude: house.latitude, longitude: house.longitude }
       : null;
@@ -260,12 +275,19 @@ export class Hub {
       this.lastUnauthorizedTry = this.now();
     }
     let structure = initial;
+    const generation = this.generation;
+    if (!this.houseRead) {
+      await this.#loadHouse(); // Gladys could not answer at start
+    }
     try {
       const recovering = initial || this.problem !== null;
       const [last, version] = await Promise.all([
         this.client.getLast(),
         recovering ? this.client.getVersion().catch(() => null) : null,
       ]);
+      if (generation !== this.generation) {
+        return; // stopped or reconfigured while the Recorder answered
+      }
       if (version) {
         this.version = version.version ?? null;
       }
@@ -369,6 +391,9 @@ export class Hub {
     const location = locationOf(message);
     if (!location) {
       return structure;
+    }
+    if (location.time > this.now() + MAX_FUTURE_MS) {
+      return structure; // a wrong clock (or tst in ms) would freeze the phone
     }
     const previous = phone.location;
     if (previous && location.time <= previous.time) {
@@ -717,6 +742,9 @@ export class Hub {
       // One line per outage, not one per attempt.
       logger.warn(`OwnTracks Recorder: ${err.message}`);
       this.problem = status;
+      if (status === 'unauthorized') {
+        this.link?.stop(); // no login every 2 minutes on the proxy
+      }
     } else {
       logger.debug(`Recorder still failing: ${err.message}`);
     }
@@ -733,6 +761,9 @@ export class Hub {
       );
     }
     this.problem = null;
+    if (this.link && !this.link.running) {
+      this.link.start();
+    }
     await this.#reportStatus(null);
   }
 

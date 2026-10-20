@@ -537,3 +537,41 @@ test('a location without coordinates, or of no user, is ignored', async (t) => {
   assert.equal(last(gladys, BOB, 'region'), 'Hors région');
   assert.deepEqual(gladys.fake.sceneEvents, []);
 });
+
+test('a location from the future (wrong clock, tst in ms) does not freeze the phone', async (t) => {
+  const { gladys, app, recorder } = await createWorld();
+  t.after(() => app.stop());
+  recorder.publish(location(...BOB, { ...WORK, inregions: ['Work'], tst: 1792505401000 }));
+  recorder.publish(location(...BOB, { ...WORK, inregions: ['Work'] }));
+  await settle(20);
+  assert.equal(last(gladys, BOB, 'region'), 'Work');
+});
+
+test('refused credentials keep the WebSocket closed until the REST retry succeeds', async (t) => {
+  const recorder = createRecorder({ basicAuth: true });
+  const { app, gladys } = await createWorld({
+    recorder,
+    config: { url: recorder.url, username: USER, password: 'wrong' },
+    timings: { fallbackInterval: 5, unauthorizedRetry: 20 },
+  });
+  t.after(() => app.stop());
+  assert.equal(app.hub.link.running, false);
+  await gladys.fake.configUpdated({ url: recorder.url, username: USER, password: PASSWORD });
+  await settle(40);
+  assert.equal(app.hub.link.running, true);
+  assert.equal(recorder.sockets.size, 1);
+});
+
+test('the Gladys house is read again when Gladys could not answer at start', async (t) => {
+  const { gladys, app, hub } = await createWorld({ timings: { fallbackInterval: 10 } });
+  t.after(() => app.stop());
+  // Simulate a failed first read: the next refresh retries it.
+  hub.houseRead = false;
+  hub.house = null;
+  app.hub.link.stop();
+  await settle(40);
+  assert.equal(hub.house?.name, 'Maison');
+  assert.ok(
+    gladys.fake.discoveredDevices[0].features.some((f) => f.external_id.endsWith(':at_home')),
+  );
+});
