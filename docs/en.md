@@ -1,61 +1,174 @@
-# Demo Devices Template
+# OwnTracks
 
-This is the user documentation of the integration. Gladys re-hosts this file
-and shows a permanent **Documentation** link to it in the Configuration screen
-(in the user's language, with English as the fallback) — it is when
-configuring that the user needs it most. Keep the short onboarding hints in
-the `section` blocks of the manifest `config_schema`; put the long
-step-by-step (screenshots, troubleshooting…) here.
+Brings into Gladys the phones tracked by [OwnTracks](https://owntracks.org),
+the free and private location app for Android and iOS, through your own
+**OwnTracks Recorder**. Each phone becomes a Gladys device that says whether it
+is at home, how far from home it is, which OwnTracks region it is in and how
+much battery it has left; scenes can react when a phone comes home or leaves,
+enters or leaves a region, or stops sending positions; and a phone at home can
+drive the presence of a Gladys user.
 
-## What you get
+Tested against a real OwnTracks Recorder 1.0.4 with simulated phones (positions
+sent through its HTTP API), not with phones on the road: feedback welcome.
 
-Six demo devices show up after installation: a weather station (real data
-from Open-Meteo), a switch, a dimmable light, a smart plug with power
-metering, a motion sensor and a camera.
+## Requirements
+
+- Gladys 5.1 or later.
+- An [OwnTracks Recorder](https://github.com/owntracks/recorder) that Gladys
+  can reach on your network, usually on port 8083 (for example the
+  `owntracks/recorder` Docker image).
+- The OwnTracks app on each phone, sending its positions to the Recorder:
+  through your MQTT broker, or in HTTP mode straight to the Recorder (`/pub`).
+  Gladys only reads the Recorder; it never talks to the phones.
 
 ## Configuration
 
-1. Open the **Configuration** tab of the integration.
-2. Set the **latitude** and **longitude** the demo weather station should
-   observe (they default to Paris), and pick your temperature unit.
-   The **refresh interval** sets how often the weather station and the
-   plug's power are read: every 5 minutes by default, every minute at most.
-3. Save: the devices appear in the **Discovery** tab, ready to be added.
+1. In Gladys, open the **Configuration** tab of the integration:
+   - **Recorder address**: as you open it in your browser, for example
+     `http://192.168.1.20:8083`. Without a port, 8083 is used. A Recorder
+     behind a reverse proxy works too, with its path
+     (`https://example.com/owntracks`).
+   - **Proxy user name** and **Proxy password**: only if a reverse proxy
+     protects the Recorder with a password (Basic auth). The Recorder itself
+     has none.
+2. Save. The **Test the connection** button shows the version of the Recorder,
+   the number of users and of phones with a position.
+3. Open the **Discovery** tab and add the phones you want in Gladys.
 
-The **Prefer the local connection** toggle drives the demo plug: it reports
-the channel it actually uses as a badge (local or cloud), with an orange dot
-when it runs degraded (local refused, cloud fallback).
+**Home and presence** (optional):
 
-## Actions
+- **Home** is a radius (150 m by default) around the location of your Gladys
+  house (**Settings → Houses**). With several houses, enter the name of the one
+  to use; by default, the first one with a location.
+- Or enter an **OwnTracks region** (a region defined in the app, for example
+  `Home`): a phone is then at home when the app says it is inside, and the
+  radius is ignored. Regions are monitored by the phone itself, which makes
+  them the most reliable and battery-friendly choice.
+- **Presence: last position at most**: a phone at home keeps saying "seen at
+  home" only while its last position is younger than this delay (2 hours by
+  default). An iPhone in the _Significant changes_ mode sends nothing while it
+  does not move: keep this delay long.
+- **Share coordinates with Gladys**: off by default, see Privacy below.
+- **Language**: the language of the feature names and of the texts written by
+  the integration (regions, sentences). French by default.
 
-- **Test the weather provider** — performs a live request to Open-Meteo and
-  shows the current temperature and humidity under the button.
-- **Identify a device** — pick one of your devices in the list and it will
-  signal itself (the demo light "blinks" in the logs).
+## Privacy
+
+By default, the coordinates of the phones never leave the integration: Gladys
+receives the presence, the distance from home, the region names and the
+battery, nothing more. With **Share coordinates with Gladys**, the widget and
+the scenes also get a link to the position on OpenStreetMap. Coordinates and
+region names are never written in the logs.
+
+## Devices
+
+One device per phone of the Recorder (one user and one device name in
+OwnTracks), named after its OwnTracks card when there is one. Features:
+
+| Feature            | What it shows                                                  |
+| ------------------ | -------------------------------------------------------------- |
+| At home            | Yes or no, according to the home rule above                    |
+| Presence           | A "seen at home" signal for the presence of a user (see below) |
+| Distance from home | In km, to the Gladys house                                     |
+| Battery            | In % of the phone                                              |
+| Last position      | Date and time of the latest position                           |
+| OwnTracks region   | The regions the phone is in, or "No region"                    |
+
+Distance needs a located Gladys house; At home and Presence need a home rule
+(radius or region).
+
+Updates are live: the Recorder pushes each new position to the integration
+through its WebSocket (`/ws/last`). If the link drops, the integration reads
+the Recorder every minute until it is back: the latest position of each phone
+is caught up, not the intermediate ones.
+
+### Presence of a user
+
+Gladys decides who is at home with scenes. Two ways, which combine well:
+
+- **Simple**: a scene triggered when the **At home** feature of the phone goes
+  to 1, with the action **User seen at home**; a second one when it goes to 0,
+  with **User left home**. The triggers **Phone arrives home** and **Phone
+  leaves home** of the integration do the same.
+- **Robust**: the **Presence** feature sends a "seen at home" signal at each
+  position at home, then every 5 minutes while the last position is recent. A
+  scheduled scene (every 5 or 10 minutes) with the action **Check user
+  presence** (the user, the house, the **Presence** feature of their phone, a
+  delay such as 15 minutes) marks the user away when the phone has not been
+  seen at home for that delay — even when its battery died at the office.
+
+## Dashboard widget
+
+The **Phones and presence** widget lists every phone (eight at most) with its
+region, the time of its last position, and its presence as a colored badge (at
+home, away, unknown). Tap a phone to see its battery, its distance from home,
+the accuracy of the position, and a map link when coordinates are shared.
 
 ## Scenes
 
-The integration adds its own cards to the scene editor (Gladys 5.1 or
-later), under the **Integrations** category:
+**Triggers** (category Integrations of the scene editor):
 
-- **Motion detected** (trigger) — starts the scene when a demo motion sensor
-  sees something move. Optionally pick the sensor and what moved (person,
-  animal); left empty, any detection matches. The following actions can
-  read what moved with `{{triggerEvent.data.target}}`.
-- **Identify a device** (action) — makes the chosen device signal itself.
-  It returns whether the device could signal itself, so the following
-  actions can depend on it.
+- **Phone arrives home** and **Phone leaves home**: the phone was away and is
+  at home now, or the other way round. Filter: the phone (empty: any).
+  Information passed on: the phone name, the time of the position.
+- **Phone enters a region** and **Phone leaves a region**: the OwnTracks app
+  reports the phone inside, or outside, one of its regions. Filters: the phone
+  and the region name, exactly as in OwnTracks (empty: any). Information passed
+  on: the phone name, the region, the time, the map link (when shared).
+- **No position received**: no new position from the phone for 1, 2, 3, 6, 12,
+  24 or 48 hours (required): the app may have stopped, or the phone be off.
+  Fired once per silence; a new position starts over. Information passed on:
+  the phone name, the time of the last position.
 
-## Dashboard
+Only the phones added to Gladys fire triggers. A crossing that happened while
+Gladys or the Recorder was unreachable fires late, when the link comes back.
 
-Add the **Demo status** widget to a dashboard: it shows the live
-temperature of the weather station and the power of the office plug, the
-connection the plug currently uses (orange when degraded) and the observed
-location. Its **Identify the light** button makes the demo light signal
-itself.
+**Action** **Get the position of a phone**: a ready-made sentence ("Alice
+(phone) is at home, position of 16:08.") and the values, for a message or a
+condition: presence, at home (yes/no), region, distance from home (km, -1 when
+unknown), battery (%, -1 when unknown), time of the position, map link (when
+shared).
+
+## Scene examples
+
+- **Welcome home**: trigger **Phone arrives home** (Alice's phone) → turn on
+  the hall light if it is dark.
+- **Last one out**: trigger **Phone leaves home** → condition "nobody at home"
+  → arm the alarm and turn the heating down.
+- **Kids at school**: trigger **Phone enters a region** (region `School`) →
+  send a message with the phone name and the time (inserted from the variable
+  picker).
+- **Tracking stopped**: trigger **No position received** (6 hours) → send a
+  message: the app was probably killed by the battery saver.
 
 ## Troubleshooting
 
-The integration logs everything it does: check the integration logs from the
-Gladys UI (or `docker logs` on the host) with `LOG_LEVEL=debug` for the full
-detail.
+- **"The Recorder does not answer"**: open the address in a browser from the
+  machine of Gladys; check the port (8083 by default) and that the Recorder
+  listens on the network (`OTR_HTTPHOST=0.0.0.0` in Docker).
+- **"Refused the user name and password"**: the reverse proxy in front of the
+  Recorder refused them. Without a proxy, leave both fields empty.
+- **No device in Discovery**: the Recorder has no position yet. Check in its
+  web page (`/last`) that the phones appear.
+- **A phone is never at home**: check the location of the Gladys house, or the
+  exact name of the OwnTracks region (case does not matter). With a radius,
+  remember that a position can be off by its accuracy (shown in the widget).
+- **No live update**: a reverse proxy must let the WebSocket `/ws/last`
+  through. Without it, the positions still arrive, every minute.
+- **The phone sends nothing for hours**: in OwnTracks, the _Significant
+  changes_ mode only sends a position after a move of several hundred meters;
+  Android's battery saver can also stop the app. See the OwnTracks
+  documentation.
+
+## Limits
+
+- Read only: the integration never sends anything to the phones (no remote
+  configuration, no position request).
+- No history: the latest position only. For the history and statistics, see
+  the Dawarich integration.
+- The region triggers follow the regions defined in the OwnTracks app; the
+  Recorder's own waypoints and friends are not used.
+- The positions are checked against the Gladys house as they are, without
+  taking their accuracy into account.
+- Developed without a phone on the road: tested against a real Recorder with
+  simulated positions. Feedback welcome.
