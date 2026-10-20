@@ -1,0 +1,43 @@
+[
+  {
+    "_type": "transition",
+    "tid": "BO",
+    "lat": 48.8601,
+    "lon": 2.3399,
+    "acc": 25,
+    "tst": 1792505400,
+    "wtst": 1790000000,
+    "event": "leave",
+    "desc": "Work",
+    "rid": "7d8e9f",
+    "t": "c",
+    "tzname": "Europe/Paris",
+    "_http": true,
+    "topic": "owntracks/bob/pixel",
+    "username": "bob",
+    "device": "pixel",
+    "ghash": "u09tvnx",
+    "_label": "OwnTracks"
+  },
+  {
+    "_type": "location",
+    "tid": "BO",
+    "lat": 48.8601,
+    "lon": 2.3399,
+    "acc": 25,
+    "batt": 39,
+    "bs": 1,
+    "vel": 18,
+    "tst": 1792505401,
+    "conn": "m",
+    "m": 1,
+    "t": "c",
+    "tzname": "Europe/Paris",
+    "_http": true,
+    "topic": "owntracks/bob/pixel",
+    "username": "bob",
+    "device": "pixel",
+    "ghash": "u09tvnx",
+    "_label": "OwnTracks"
+  }
+]

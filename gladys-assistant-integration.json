@@ -1,177 +1,786 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "OwnTracks",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Your phones tracked by OwnTracks in Gladys: presence, distance, regions, battery.",
+    "fr": "Vos téléphones suivis par OwnTracks dans Gladys : présence, distance, régions, batterie.",
+    "de": "Deine von OwnTracks verfolgten Telefone in Gladys: Anwesenheit, Entfernung, Regionen, Akku.",
+    "es": "Sus teléfonos seguidos por OwnTracks en Gladys: presencia, distancia, regiones, batería."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
+  "docker_image": "ghcr.io/guim31/gladys-owntracks:1.0.0",
   "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-owntracks/main/cover.png",
+  "categories": ["security"],
+  "transports": ["local"],
+  "location": true,
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Connect your OwnTracks Recorder",
+        "fr": "Connecter votre OwnTracks Recorder",
+        "de": "Verbinde deinen OwnTracks Recorder",
+        "es": "Conecte su OwnTracks Recorder"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Enter the address of the OwnTracks Recorder as you open it in your browser (port 8083 by default). The OwnTracks app on the phones sends its positions to the Recorder, by MQTT or HTTP; Gladys reads them from the Recorder. If the Recorder is behind a proxy with a password (Basic auth), enter the user name and password too.",
+        "fr": "Saisissez l'adresse d'OwnTracks Recorder telle que vous l'ouvrez dans votre navigateur (port 8083 par défaut). L'application OwnTracks des téléphones envoie ses positions au Recorder, par MQTT ou HTTP ; Gladys les lit dans le Recorder. Si le Recorder est derrière un proxy protégé par mot de passe (Basic auth), saisissez aussi le nom d'utilisateur et le mot de passe.",
+        "de": "Gib die Adresse des OwnTracks Recorders ein, wie du sie im Browser öffnest (standardmäßig Port 8083). Die OwnTracks-App der Telefone sendet ihre Positionen per MQTT oder HTTP an den Recorder; Gladys liest sie dort. Liegt der Recorder hinter einem Proxy mit Passwort (Basic Auth), gib auch Benutzername und Passwort ein.",
+        "es": "Introduzca la dirección de OwnTracks Recorder tal como la abre en su navegador (puerto 8083 por defecto). La aplicación OwnTracks de los teléfonos envía sus posiciones al Recorder, por MQTT o HTTP; Gladys las lee en el Recorder. Si el Recorder está detrás de un proxy con contraseña (Basic auth), introduzca también el nombre de usuario y la contraseña."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://owntracks.org/booklet/clients/recorder/",
+          "label": {
+            "en": "OwnTracks Recorder documentation",
+            "fr": "Documentation d'OwnTracks Recorder",
+            "de": "Dokumentation des OwnTracks Recorders",
+            "es": "Documentación de OwnTracks Recorder"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
+      "key": "url",
+      "type": "string",
+      "label": {
+        "en": "Recorder address",
+        "fr": "Adresse du Recorder",
+        "de": "Adresse des Recorders",
+        "es": "Dirección del Recorder"
       },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
+      "placeholder": {
+        "en": "http://192.168.1.20:8083",
+        "fr": "http://192.168.1.20:8083",
+        "de": "http://192.168.1.20:8083",
+        "es": "http://192.168.1.20:8083"
+      },
+      "required": true
     },
     {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
+      "key": "username",
+      "type": "string",
+      "label": {
+        "en": "Proxy user name (optional)",
+        "fr": "Utilisateur du proxy (facultatif)",
+        "de": "Benutzername des Proxys (optional)",
+        "es": "Usuario del proxy (opcional)"
       },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
+      "required": false
     },
     {
-      "key": "unit",
+      "key": "password",
+      "type": "secret",
+      "label": {
+        "en": "Proxy password (optional)",
+        "fr": "Mot de passe du proxy (facultatif)",
+        "de": "Passwort des Proxys (optional)",
+        "es": "Contraseña del proxy (opcional)"
+      },
+      "required": false
+    },
+    {
+      "key": "home_section",
+      "type": "section",
+      "label": {
+        "en": "Home and presence",
+        "fr": "Maison et présence",
+        "de": "Zuhause und Anwesenheit",
+        "es": "Casa y presencia"
+      },
+      "description": {
+        "en": "A phone is at home when it is within the radius below around the location of your Gladys house, or, if you name one, inside that OwnTracks region (a region defined in the app). Use its At home feature in scenes with \"User seen at home\" and \"User left home\", or its Presence feature with \"Check user presence\". iPhones in Significant mode can stay silent for hours without moving: keep the delay below long enough.",
+        "fr": "Un téléphone est à la maison quand il est dans le rayon ci-dessous autour de l'emplacement de votre maison Gladys, ou, si vous en indiquez une, dans cette région OwnTracks (une région définie dans l'application). Utilisez sa fonctionnalité À la maison dans des scènes avec « Utilisateur vu à la maison » et « Utilisateur parti de la maison », ou sa fonctionnalité Présence avec « Vérifier la présence ». Un iPhone en mode Significatif peut rester muet des heures sans bouger : gardez un délai assez long ci-dessous.",
+        "de": "Ein Telefon ist zu Hause, wenn es im unten angegebenen Radius um den Standort deines Gladys-Hauses liegt, oder, wenn du eine nennst, in dieser OwnTracks-Region (einer in der App definierten Region). Nutze seine Funktion Zu Hause in Szenen mit „Benutzer zu Hause gesehen“ und „Benutzer hat das Zuhause verlassen“, oder seine Funktion Anwesenheit mit „Anwesenheit von Benutzern überprüfen“. Ein iPhone im Modus Signifikant kann stundenlang still bleiben, wenn es sich nicht bewegt: wähle unten eine ausreichend lange Frist.",
+        "es": "Un teléfono está en casa cuando se encuentra en el radio indicado abajo alrededor de la ubicación de su casa Gladys o, si indica una, dentro de esa región de OwnTracks (una región definida en la aplicación). Utilice su función En casa en escenas con «Usuario visto en casa» y «Usuario fuera de casa», o su función Presencia con «Comprobar presencia del usuario». Un iPhone en modo Significativo puede quedarse callado horas sin moverse: mantenga un plazo suficientemente largo abajo."
+      }
+    },
+    {
+      "key": "house",
+      "type": "string",
+      "label": {
+        "en": "Gladys house (optional)",
+        "fr": "Maison Gladys (facultatif)",
+        "de": "Gladys-Haus (optional)",
+        "es": "Casa Gladys (opcional)"
+      },
+      "placeholder": {
+        "en": "Name of the house, empty: the first located one",
+        "fr": "Nom de la maison, vide : la première située",
+        "de": "Name des Hauses, leer: das erste mit Standort",
+        "es": "Nombre de la casa, vacío: la primera ubicada"
+      },
+      "required": false
+    },
+    {
+      "key": "home_radius",
+      "type": "number",
+      "label": {
+        "en": "Home radius (meters)",
+        "fr": "Rayon de la maison (mètres)",
+        "de": "Radius um das Zuhause (Meter)",
+        "es": "Radio de la casa (metros)"
+      },
+      "required": false,
+      "default": 150,
+      "min": 20,
+      "max": 5000
+    },
+    {
+      "key": "home_region",
+      "type": "string",
+      "label": {
+        "en": "Or: OwnTracks region of home",
+        "fr": "Ou : région OwnTracks de la maison",
+        "de": "Oder: OwnTracks-Region des Zuhauses",
+        "es": "O bien: región OwnTracks de la casa"
+      },
+      "placeholder": {
+        "en": "Home",
+        "fr": "Maison",
+        "de": "Zuhause",
+        "es": "Casa"
+      },
+      "required": false
+    },
+    {
+      "key": "presence_max_age",
+      "type": "number",
+      "label": {
+        "en": "Presence: last position at most (minutes)",
+        "fr": "Présence : dernière position au plus (minutes)",
+        "de": "Anwesenheit: letzte Position höchstens (Minuten)",
+        "es": "Presencia: última posición como máximo (minutos)"
+      },
+      "required": false,
+      "default": 120,
+      "min": 5,
+      "max": 1440
+    },
+    {
+      "key": "share_coordinates",
+      "type": "boolean",
+      "label": {
+        "en": "Share coordinates with Gladys (map links)",
+        "fr": "Partager les coordonnées avec Gladys (liens de carte)",
+        "de": "Koordinaten mit Gladys teilen (Kartenlinks)",
+        "es": "Compartir coordenadas con Gladys (enlaces de mapa)"
+      },
+      "description": {
+        "en": "Off: only presence, distance and region leave the integration. On: the widget and scenes get an OpenStreetMap link to the position.",
+        "fr": "Désactivé : seules la présence, la distance et la région sortent de l'intégration. Activé : le widget et les scènes reçoivent un lien OpenStreetMap vers la position.",
+        "de": "Aus: Nur Anwesenheit, Entfernung und Region verlassen die Integration. An: Widget und Szenen erhalten einen OpenStreetMap-Link zur Position.",
+        "es": "Desactivado: solo la presencia, la distancia y la región salen de la integración. Activado: el widget y las escenas reciben un enlace de OpenStreetMap a la posición."
+      },
+      "required": false,
+      "default": false
+    },
+    {
+      "key": "language",
       "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
-      "required": false,
-      "default": "celsius",
-      "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
-      ]
-    },
-    {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
-      "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+      "label": {
+        "en": "Language of the names and texts",
+        "fr": "Langue des noms et des textes",
+        "de": "Sprache der Namen und Texte",
+        "es": "Idioma de los nombres y textos"
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": "fr",
+      "options": [
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "Anglais",
+            "de": "Englisch",
+            "es": "Inglés"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "French",
+            "fr": "Français",
+            "de": "Französisch",
+            "es": "Francés"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "German",
+            "fr": "Allemand",
+            "de": "Deutsch",
+            "es": "Alemán"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Spanish",
+            "fr": "Espagnol",
+            "de": "Spanisch",
+            "es": "Español"
+          }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
+      "key": "test_connection",
+      "label": {
+        "en": "Test the connection",
+        "fr": "Tester la connexion",
+        "de": "Verbindung testen",
+        "es": "Probar la conexión"
+      },
       "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
-        {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
-        }
-      ]
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "home_arrival",
+      "label": {
+        "en": "Phone arrives home",
+        "fr": "Un téléphone arrive à la maison",
+        "de": "Telefon kommt nach Hause",
+        "es": "Un teléfono llega a casa"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "The phone was away and is now at home (radius or home region).",
+        "fr": "Le téléphone était absent et il est maintenant à la maison (rayon ou région).",
+        "de": "Das Telefon war unterwegs und ist jetzt zu Hause (Radius oder Region).",
+        "es": "El teléfono estaba fuera y ahora está en casa (radio o región)."
       },
       "fields": [
         {
           "key": "device",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
+          "label": {
+            "en": "Phone",
+            "fr": "Téléphone",
+            "de": "Telefon",
+            "es": "Teléfono"
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "phone",
+          "type": "string",
+          "label": {
+            "en": "Phone name",
+            "fr": "Nom du téléphone",
+            "de": "Name des Telefons",
+            "es": "Nombre del teléfono"
+          }
         },
         {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
+          "key": "time",
+          "type": "string",
+          "label": {
+            "en": "Time of the position",
+            "fr": "Heure de la position",
+            "de": "Zeit der Position",
+            "es": "Hora de la posición"
+          }
+        }
+      ]
+    },
+    {
+      "key": "home_departure",
+      "label": {
+        "en": "Phone leaves home",
+        "fr": "Un téléphone quitte la maison",
+        "de": "Telefon verlässt das Zuhause",
+        "es": "Un teléfono sale de casa"
+      },
+      "description": {
+        "en": "The phone was at home and is now away (radius or home region).",
+        "fr": "Le téléphone était à la maison et il est maintenant absent (rayon ou région).",
+        "de": "Das Telefon war zu Hause und ist jetzt unterwegs (Radius oder Region).",
+        "es": "El teléfono estaba en casa y ahora está fuera (radio o región)."
+      },
+      "fields": [
+        {
+          "key": "device",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Phone",
+            "fr": "Téléphone",
+            "de": "Telefon",
+            "es": "Teléfono"
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "phone",
+          "type": "string",
+          "label": {
+            "en": "Phone name",
+            "fr": "Nom du téléphone",
+            "de": "Name des Telefons",
+            "es": "Nombre del teléfono"
+          }
+        },
+        {
+          "key": "time",
+          "type": "string",
+          "label": {
+            "en": "Time of the position",
+            "fr": "Heure de la position",
+            "de": "Zeit der Position",
+            "es": "Hora de la posición"
+          }
+        }
+      ]
+    },
+    {
+      "key": "region_enter",
+      "label": {
+        "en": "Phone enters a region",
+        "fr": "Un téléphone entre dans une région",
+        "de": "Telefon betritt eine Region",
+        "es": "Un teléfono entra en una región"
+      },
+      "description": {
+        "en": "The OwnTracks app reports the phone inside one of its regions.",
+        "fr": "L'application OwnTracks signale le téléphone dans l'une de ses régions.",
+        "de": "Die OwnTracks-App meldet das Telefon in einer ihrer Regionen.",
+        "es": "La aplicación OwnTracks indica el teléfono dentro de una de sus regiones."
+      },
+      "fields": [
+        {
+          "key": "device",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Phone",
+            "fr": "Téléphone",
+            "de": "Telefon",
+            "es": "Teléfono"
+          }
+        },
+        {
+          "key": "region",
+          "type": "string",
+          "label": {
+            "en": "Region (optional)",
+            "fr": "Région (facultatif)",
+            "de": "Region (optional)",
+            "es": "Región (opcional)"
+          },
+          "description": {
+            "en": "The name of the region exactly as in OwnTracks. Empty: any region.",
+            "fr": "Le nom de la région exactement comme dans OwnTracks. Vide : n'importe laquelle.",
+            "de": "Der Name der Region genau wie in OwnTracks. Leer: jede Region.",
+            "es": "El nombre de la región exactamente como en OwnTracks. Vacío: cualquier región."
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "phone",
+          "type": "string",
+          "label": {
+            "en": "Phone name",
+            "fr": "Nom du téléphone",
+            "de": "Name des Telefons",
+            "es": "Nombre del teléfono"
+          }
+        },
+        {
+          "key": "region",
+          "type": "string",
+          "label": {
+            "en": "Region",
+            "fr": "Région",
+            "de": "Region",
+            "es": "Región"
+          }
+        },
+        {
+          "key": "time",
+          "type": "string",
+          "label": {
+            "en": "Time of the position",
+            "fr": "Heure de la position",
+            "de": "Zeit der Position",
+            "es": "Hora de la posición"
+          }
+        },
+        {
+          "key": "map_url",
+          "type": "string",
+          "label": {
+            "en": "Map link (if shared)",
+            "fr": "Lien vers la carte (si partagé)",
+            "de": "Kartenlink (falls geteilt)",
+            "es": "Enlace al mapa (si se comparte)"
+          }
+        }
+      ]
+    },
+    {
+      "key": "region_exit",
+      "label": {
+        "en": "Phone leaves a region",
+        "fr": "Un téléphone sort d'une région",
+        "de": "Telefon verlässt eine Region",
+        "es": "Un teléfono sale de una región"
+      },
+      "description": {
+        "en": "The OwnTracks app reports the phone outside a region it was in.",
+        "fr": "L'application OwnTracks signale le téléphone hors d'une région où il était.",
+        "de": "Die OwnTracks-App meldet das Telefon außerhalb einer Region, in der es war.",
+        "es": "La aplicación OwnTracks indica el teléfono fuera de una región en la que estaba."
+      },
+      "fields": [
+        {
+          "key": "device",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Phone",
+            "fr": "Téléphone",
+            "de": "Telefon",
+            "es": "Teléfono"
+          }
+        },
+        {
+          "key": "region",
+          "type": "string",
+          "label": {
+            "en": "Region (optional)",
+            "fr": "Région (facultatif)",
+            "de": "Region (optional)",
+            "es": "Región (opcional)"
+          },
+          "description": {
+            "en": "The name of the region exactly as in OwnTracks. Empty: any region.",
+            "fr": "Le nom de la région exactement comme dans OwnTracks. Vide : n'importe laquelle.",
+            "de": "Der Name der Region genau wie in OwnTracks. Leer: jede Region.",
+            "es": "El nombre de la región exactamente como en OwnTracks. Vacío: cualquier región."
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "phone",
+          "type": "string",
+          "label": {
+            "en": "Phone name",
+            "fr": "Nom du téléphone",
+            "de": "Name des Telefons",
+            "es": "Nombre del teléfono"
+          }
+        },
+        {
+          "key": "region",
+          "type": "string",
+          "label": {
+            "en": "Region",
+            "fr": "Région",
+            "de": "Region",
+            "es": "Región"
+          }
+        },
+        {
+          "key": "time",
+          "type": "string",
+          "label": {
+            "en": "Time of the position",
+            "fr": "Heure de la position",
+            "de": "Zeit der Position",
+            "es": "Hora de la posición"
+          }
+        },
+        {
+          "key": "map_url",
+          "type": "string",
+          "label": {
+            "en": "Map link (if shared)",
+            "fr": "Lien vers la carte (si partagé)",
+            "de": "Kartenlink (falls geteilt)",
+            "es": "Enlace al mapa (si se comparte)"
+          }
+        }
+      ]
+    },
+    {
+      "key": "tracking_stopped",
+      "label": {
+        "en": "No position received",
+        "fr": "Plus de position reçue",
+        "de": "Keine Position mehr empfangen",
+        "es": "No se reciben posiciones"
+      },
+      "description": {
+        "en": "No new position from the phone for the chosen time: the app may have stopped.",
+        "fr": "Aucune nouvelle position du téléphone depuis la durée choisie : l'application s'est peut-être arrêtée.",
+        "de": "Keine neue Position vom Telefon seit der gewählten Dauer: Die App ist vielleicht gestoppt.",
+        "es": "Ninguna posición nueva del teléfono durante el tiempo elegido: puede que la aplicación se haya detenido."
+      },
+      "fields": [
+        {
+          "key": "device",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Phone",
+            "fr": "Téléphone",
+            "de": "Telefon",
+            "es": "Teléfono"
+          }
+        },
+        {
+          "key": "hours",
+          "type": "select",
+          "required": true,
+          "label": {
+            "en": "For at least",
+            "fr": "Depuis au moins",
+            "de": "Seit mindestens",
+            "es": "Desde hace al menos"
+          },
           "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
+            {
+              "value": "1",
+              "label": {
+                "en": "1 hour",
+                "fr": "1 heure",
+                "de": "1 Stunde",
+                "es": "1 hora"
+              }
+            },
+            {
+              "value": "2",
+              "label": {
+                "en": "2 hours",
+                "fr": "2 heures",
+                "de": "2 Stunden",
+                "es": "2 horas"
+              }
+            },
+            {
+              "value": "3",
+              "label": {
+                "en": "3 hours",
+                "fr": "3 heures",
+                "de": "3 Stunden",
+                "es": "3 horas"
+              }
+            },
+            {
+              "value": "6",
+              "label": {
+                "en": "6 hours",
+                "fr": "6 heures",
+                "de": "6 Stunden",
+                "es": "6 horas"
+              }
+            },
+            {
+              "value": "12",
+              "label": {
+                "en": "12 hours",
+                "fr": "12 heures",
+                "de": "12 Stunden",
+                "es": "12 horas"
+              }
+            },
+            {
+              "value": "24",
+              "label": {
+                "en": "24 hours",
+                "fr": "24 heures",
+                "de": "24 Stunden",
+                "es": "24 horas"
+              }
+            },
+            {
+              "value": "48",
+              "label": {
+                "en": "48 hours",
+                "fr": "48 heures",
+                "de": "48 Stunden",
+                "es": "48 horas"
+              }
+            }
           ]
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "phone",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Phone name",
+            "fr": "Nom du téléphone",
+            "de": "Name des Telefons",
+            "es": "Nombre del teléfono"
+          }
+        },
+        {
+          "key": "last_position",
+          "type": "string",
+          "label": {
+            "en": "Time of the last position",
+            "fr": "Heure de la dernière position",
+            "de": "Zeit der letzten Position",
+            "es": "Hora de la última posición"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "get_position",
+      "label": {
+        "en": "Get the position of a phone",
+        "fr": "Lire la position d'un téléphone",
+        "de": "Position eines Telefons abfragen",
+        "es": "Leer la posición de un teléfono"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "A sentence such as \"Alice is at home\", and the region, distance, battery.",
+        "fr": "Une phrase comme « Alice est à la maison », et la région, la distance, la batterie.",
+        "de": "Ein Satz wie „Alice ist zu Hause“ sowie Region, Entfernung und Akku.",
+        "es": "Una frase como «Alice está en casa», y la región, la distancia, la batería."
+      },
+      "timeout_seconds": 10,
       "fields": [
         {
           "key": "device",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
+          "label": {
+            "en": "Phone",
+            "fr": "Téléphone",
+            "de": "Telefon",
+            "es": "Teléfono"
+          },
           "required": true
         }
       ],
       "outputs": [
         {
-          "key": "signalled",
+          "key": "sentence",
+          "type": "string",
+          "label": {
+            "en": "Sentence",
+            "fr": "Phrase",
+            "de": "Satz",
+            "es": "Frase"
+          }
+        },
+        {
+          "key": "phone",
+          "type": "string",
+          "label": {
+            "en": "Phone name",
+            "fr": "Nom du téléphone",
+            "de": "Name des Telefons",
+            "es": "Nombre del teléfono"
+          }
+        },
+        {
+          "key": "status",
+          "type": "string",
+          "label": {
+            "en": "Presence",
+            "fr": "Présence",
+            "de": "Anwesenheit",
+            "es": "Presencia"
+          }
+        },
+        {
+          "key": "at_home",
           "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "label": {
+            "en": "At home",
+            "fr": "À la maison",
+            "de": "Zu Hause",
+            "es": "En casa"
+          }
+        },
+        {
+          "key": "region",
+          "type": "string",
+          "label": {
+            "en": "Region",
+            "fr": "Région",
+            "de": "Region",
+            "es": "Región"
+          }
+        },
+        {
+          "key": "distance_km",
+          "type": "number",
+          "label": {
+            "en": "Distance from home (km, -1 unknown)",
+            "fr": "Distance de la maison (km, -1 inconnue)",
+            "de": "Entfernung von zu Hause (km, -1 unbekannt)",
+            "es": "Distancia de casa (km, -1 desconocida)"
+          }
+        },
+        {
+          "key": "battery",
+          "type": "number",
+          "label": {
+            "en": "Battery (%, -1 unknown)",
+            "fr": "Batterie (%, -1 inconnue)",
+            "de": "Akku (%, -1 unbekannt)",
+            "es": "Batería (%, -1 desconocida)"
+          }
+        },
+        {
+          "key": "last_position",
+          "type": "string",
+          "label": {
+            "en": "Time of the position",
+            "fr": "Heure de la position",
+            "de": "Zeit der Position",
+            "es": "Hora de la posición"
+          }
+        },
+        {
+          "key": "map_url",
+          "type": "string",
+          "label": {
+            "en": "Map link (if shared)",
+            "fr": "Lien vers la carte (si partagé)",
+            "de": "Kartenlink (falls geteilt)",
+            "es": "Enlace al mapa (si se comparte)"
+          }
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "phones",
+      "label": {
+        "en": "Phones and presence",
+        "fr": "Téléphones et présence",
+        "de": "Telefone und Anwesenheit",
+        "es": "Teléfonos y presencia"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "Every phone with its presence, its region and its last position time.",
+        "fr": "Chaque téléphone avec sa présence, sa région et l'heure de sa dernière position.",
+        "de": "Jedes Telefon mit Anwesenheit, Region und Zeit der letzten Position.",
+        "es": "Cada teléfono con su presencia, su región y la hora de su última posición."
+      },
+      "icon": "map-pin"
     }
   ]
 }

@@ -1,33 +1,50 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeConfig, DEFAULT_CONFIG } from '../src/config.js';
+import { DEFAULT_CONFIG, isConfigured, normalizeConfig, normalizeUrl } from '../src/config.js';
 
-test('normalizeConfig returns the defaults when called with no argument', () => {
-  assert.deepEqual(normalizeConfig(), DEFAULT_CONFIG);
+test('the Recorder address: default port 8083, prefix kept, pages and credentials refused', () => {
+  assert.equal(normalizeUrl('192.0.2.10'), 'http://192.0.2.10:8083');
+  assert.equal(normalizeUrl(' 192.0.2.10:9000 '), 'http://192.0.2.10:9000');
+  assert.equal(normalizeUrl('recorder.example.com'), 'http://recorder.example.com:8083');
+  assert.equal(normalizeUrl('https://example.com/owntracks/'), 'https://example.com/owntracks');
+  assert.equal(normalizeUrl('http://192.0.2.10:8083/last/'), 'http://192.0.2.10:8083');
+  assert.equal(normalizeUrl('http://192.0.2.10:8083/api/0/last'), 'http://192.0.2.10:8083');
+  assert.equal(normalizeUrl('https://example.com/ot/map/index.html'), 'https://example.com/ot');
+  assert.equal(normalizeUrl('http://user:secret@192.0.2.10'), null);
+  assert.equal(normalizeUrl('ftp://192.0.2.10'), null);
+  assert.equal(normalizeUrl(''), null);
+  assert.equal(normalizeUrl(undefined), null);
 });
 
-test('normalizeConfig keeps user values over the defaults', () => {
-  const config = normalizeConfig({ latitude: 45.5, longitude: -73.6, unit: 'fahrenheit' });
-  assert.equal(config.latitude, 45.5);
-  assert.equal(config.longitude, -73.6);
-  assert.equal(config.unit, 'fahrenheit');
-});
+test('normalization: defaults, bounds, booleans, languages', () => {
+  const config = normalizeConfig({});
+  assert.equal(config.url, null);
+  assert.equal(config.invalidUrl, false);
+  assert.equal(config.homeRadius, DEFAULT_CONFIG.home_radius);
+  assert.equal(config.presenceMaxAge, 120);
+  assert.equal(config.shareCoordinates, false);
+  assert.equal(config.language, 'fr');
+  assert.equal(isConfigured(config), false);
 
-test('normalizeConfig coerces numeric strings coming from a form', () => {
-  const config = normalizeConfig({ latitude: '48.8', longitude: '2.3', poll_frequency: '600' });
-  assert.equal(config.latitude, 48.8);
-  assert.equal(config.longitude, 2.3);
-  assert.equal(config.poll_frequency, 600);
-  assert.equal(typeof config.poll_frequency, 'number');
-});
-
-test('normalizeConfig falls back to the default for a missing numeric field', () => {
-  const config = normalizeConfig({ unit: 'celsius' });
-  assert.equal(config.poll_frequency, DEFAULT_CONFIG.poll_frequency);
-});
-
-test('GLADYS_PREFER_LOCAL defaults to true and only an explicit false disables it', () => {
-  assert.equal(normalizeConfig().GLADYS_PREFER_LOCAL, true);
-  assert.equal(normalizeConfig({ GLADYS_PREFER_LOCAL: true }).GLADYS_PREFER_LOCAL, true);
-  assert.equal(normalizeConfig({ GLADYS_PREFER_LOCAL: false }).GLADYS_PREFER_LOCAL, false);
+  const set = normalizeConfig({
+    url: '192.0.2.10',
+    username: ' proxy ',
+    password: ' spaced ',
+    home_radius: '10',
+    home_region: ' Home ',
+    presence_max_age: 5000,
+    share_coordinates: true,
+    language: 'de',
+  });
+  assert.equal(set.url, 'http://192.0.2.10:8083');
+  assert.equal(set.username, 'proxy');
+  assert.equal(set.password, ' spaced ');
+  assert.equal(set.homeRadius, 20);
+  assert.equal(set.homeRegion, 'Home');
+  assert.equal(set.presenceMaxAge, 1440);
+  assert.equal(set.shareCoordinates, true);
+  assert.equal(set.language, 'de');
+  assert.equal(isConfigured(set), true);
+  assert.equal(normalizeConfig({ url: 'ftp://x' }).invalidUrl, true);
+  assert.equal(normalizeConfig({ language: 'it' }).language, 'fr');
 });

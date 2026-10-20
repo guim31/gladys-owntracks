@@ -30,6 +30,23 @@ Gladys before reporting a problem.
 
 In scope: the code of this repository and the Docker image it publishes.
 
+What the integration holds:
+
+- the optional user name and password of a reverse proxy in front of the
+  Recorder (Basic auth), in the Gladys configuration (the password in a
+  `secret` field, never sent back to the browser by Gladys) — never in `/data`,
+  never in the logs;
+- nothing in `/data`: the positions and regions live in memory only;
+- the location of the Gladys house (manifest `location: true`), read to compute
+  the distance from home, kept in memory;
+- the coordinates of the phones, kept in memory and sent to Gladys only when
+  the administrator enables "Share coordinates" (then as OpenStreetMap links);
+  never written in the logs, nor the region names;
+- network: HTTP(S) and WebSocket connections to the Recorder address the
+  administrator entered. No other outbound connection. Redirects are not
+  followed, so the credentials are never sent to another address.
+
 Out of scope: Gladys Assistant itself (see its
 [security policy](https://github.com/GladysAssistant/Gladys/security/policy)),
-and the third-party services and devices the integration talks to.
+and OwnTracks itself, apps and Recorder (report to its maintainers, see
+[owntracks/recorder](https://github.com/owntracks/recorder)).

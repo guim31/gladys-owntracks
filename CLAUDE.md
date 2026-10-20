@@ -16,8 +16,8 @@ its only runtime dependency. It started from the official JavaScript template.
 ```bash
 npm install
 npm test                                  # node --test, the built-in runner
-node --test test/devices.test.js          # one file
-node --test --test-name-pattern "plug"    # tests whose name matches
+node --test test/hub.test.js              # one file
+node --test --test-name-pattern "region"  # tests whose name matches
 npm run lint                              # ESLint
 npm run format:check                      # Prettier, as the CI runs it
 npm run format                            # Prettier, fix in place
@@ -31,16 +31,21 @@ pushing.
 ## Architecture
 
 ```
-index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
-src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+index.js                          SDK wiring only (src/app.js registers the handlers)
+src/app.js                        every SDK handler, waiting for the hub to start
+src/hub.js                        phones, states, scene events, presence pings, silences, connection status
+src/model.js                      Recorder message -> phone view (regions, home, distance)
+src/devices.js                    phone view -> Gladys device and feature states
+src/owntracks/client.js           HTTP client of the Recorder (optional Basic auth)
+src/owntracks/socket.js           WebSocket /ws/last, pings, reconnection
+src/scenes.js                     scene action `get_position`
+src/widgets.js                    dashboard widget `phones`
+src/texts.js                      every text, in four languages
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
-gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
-test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+gladys-assistant-integration.json manifest: name, config_schema, actions, triggers, widget...
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (en and fr mandatory)
+test/                             node --test, the SDK's fake Gladys and a fake Recorder
+test/fixtures/recorder-1.0.4/     answers and WebSocket frames of a real Recorder 1.0.4 (fake data)
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +75,9 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** exists in English, French, German and Spanish: action
+  messages, manifest texts, widget texts, feature names, and
+  `docs/{en,fr,de,es}.md`, kept in sync (`test/i18n.test.js`).
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -233,3 +239,40 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+## OwnTracks Recorder (vérifié sur Recorder 1.0.4 en Docker, 20/10/2026)
+
+- **API** : `GET /api/0/version`, `GET /api/0/list` (`{ results: [users] }`), `GET /api/0/last` (dernière
+  `location` de chaque utilisateur/appareil, avec `username`, `device`, `topic`, et le `name` de la carte
+  OwnTracks s'il y en a une). **`?fields=a,b,…` filtre les champs** : indispensable, car la carte ajoute aussi
+  `face`, une image base64 de plusieurs dizaines de Ko par téléphone. Le Recorder n'a **aucune
+  authentification** : la Basic auth est celle d'un éventuel proxy inverse, envoyée aussi au WebSocket.
+- **WebSocket `/ws/last`** : pousse chaque `location` et chaque `transition` reçue (objets JSON complets,
+  avec `username`/`device`/`topic` et `_label`), **pas les cartes**. Aucun keep-alive du serveur, mais il
+  **renvoie en écho tout texte reçu** : le conteneur envoie `ping` toutes les 30 s et reconnecte sans écho.
+  Le texte `LAST` y renvoie des positions abrégées (sans batterie ni régions) : ne pas s'en servir, relire
+  `/api/0/last` à chaque ouverture.
+- **`inregions` est omis quand le téléphone n'est dans aucune région** (et par les vieilles applications qui
+  ne l'envoient jamais) : un téléphone n'est « hors région » sur absence du champ que s'il l'a déjà envoyé une
+  fois ; sinon seules ses `transition` (`event: enter|leave`, `desc`) font foi. Une transition plus ancienne
+  que la dernière position est ignorée. Une même région entrée par une transition puis par la position qui
+  suit ne déclenche qu'une fois.
+- `tst` est en secondes ; une position déjà vue (même `tst` ou plus ancien) est ignorée, d'où aucun double
+  déclenchement au rattrapage REST. Le premier état lu au démarrage sert de base (aucun déclencheur), y
+  compris pour les silences déjà commencés.
+- Test réel : `owntracks/recorder` avec `OTR_PORT=0` (sans MQTT) et `OTR_HTTPHOST=0.0.0.0`, positions publiées
+  par `POST /pub` avec les en-têtes `X-Limit-U` / `X-Limit-D` (le corps est le JSON OwnTracks).
+- Vie privée : aucune coordonnée ni nom de région dans les journaux, même en debug (un test le vérifie) ;
+  coordonnées envoyées à Gladys seulement avec `share_coordinates` (liens OpenStreetMap).
+
+## Présence (cœur Gladys)
+
+- Même choix que gladys-traccar : le SDK n'offre aucune API pour la présence d'un utilisateur, le cœur la gère
+  par scènes. `presence-sensor/binary` « À la maison » (état, déclencheur) et `presence-sensor/push`
+  « Présence », republiée (`publishState`, sans déduplication) à chaque position à la maison puis toutes les
+  5 min tant que la dernière position a moins de `presence_max_age` minutes (**120 par défaut**, au lieu de 30
+  pour Traccar : un iPhone en mode « Significatif » se tait tant qu'il ne bouge pas).
+- `getHouses()` exige `location: true` dans le manifeste ; la maison se choisit par son nom pour garder
+  `>=5.1.0` (`source: "houses"` n'existe qu'en 5.2.0).
+- Déclencheur « Plus de position reçue » : champ `hours` **obligatoire** (sinon le filtre vide le ferait partir
+  à chaque palier), une seule fois par palier et par silence.
