@@ -8,8 +8,8 @@
     "de": "Deine von OwnTracks verfolgten Telefone in Gladys: Anwesenheit, Entfernung, Regionen, Akku.",
     "es": "Sus teléfonos seguidos por OwnTracks en Gladys: presencia, distancia, regiones, batería."
   },
-  "version": "1.0.0",
-  "docker_image": "ghcr.io/guim31/gladys-owntracks:1.0.0",
+  "version": "1.0.1",
+  "docker_image": "ghcr.io/guim31/gladys-owntracks:1.0.1",
   "gladys_version": ">=5.1.0",
   "cover_image": "https://raw.githubusercontent.com/guim31/gladys-owntracks/main/cover.png",
   "categories": ["security"],

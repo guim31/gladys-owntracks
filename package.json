@@ -1,6 +1,6 @@
 {
   "name": "gladys-integration-template-js",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Official starter template to build an external integration for Gladys Assistant with the JavaScript SDK.",
   "type": "module",
