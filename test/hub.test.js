@@ -489,7 +489,10 @@ test('never a coordinate nor a region name in the logs, even in debug', async (t
   await settle(30);
   assert.ok(logs.lines.length > 0);
   assert.ok(
-    logs.lines.every((line) => !/48\.8|2\.3[0-9]|Secret place/.test(line)),
+    // Without the timestamp prefix: its seconds (e.g. `42.315Z`) could match a coordinate.
+    logs.lines.every(
+      (line) => !/48\.8|2\.3[0-9]|Secret place/.test(line.replace(/^\[[^\]]+\] /, '')),
+    ),
     logs.lines.join('\n'),
   );
 });
